@@ -1,0 +1,154 @@
+Ερώτηση 1 :
+
+select distinct flights.airplanes.number 
+from flights.airplanes ,flights.airlines  , flights.airlines_has_airplanes aha
+where flights.airplanes.id in
+(
+	select flights.airplanes.id
+    from flights.airplanes
+    where manufacturer = 'Boeing' 
+)
+and flights.airlines.id in 
+(
+	select flights.airlines.id
+    from flights.airlines
+    where name = 'British Airways'
+)
+and flights.airplanes.id = aha.airplanes_id
+and flights.airlines.id = aha.airlines_id
+
+---------------------------------------------------
+Ερώτηση 2:
+
+select flights.airlines.name from flights.airlines
+where flights.airlines.id in(
+	select flights.routes.airlines_id from flights.airports , flights.routes 
+	where flights.routes.destination_id in( 
+		select id from flights.airports
+		where flights.airports.city = 'London')
+	and flights.routes.source_id in (
+		select id from flights.airports
+		where flights.airports.city = 'Athens')
+    );
+    
+----------------------------------------------------
+Ερώτηση 3:
+
+select count(passengers_id) as number from flights.flights_has_passengers,flights.flights,flights.routes,flights.airlines
+where flights.flights_has_passengers.flights_id = flights.flights.id
+and flights.flights.routes_id = flights.routes.id
+and flights.routes.airlines_id = flights.airlines.id
+and flights.airlines.name = 'Aegean Airlines'
+and flights.flights.date = '2012-02-19';
+
+----------------------------------------------------
+Ερώτηση 4:
+
+select distinct 'yes' as result
+from flights.airlines
+where exists
+(
+	select * from flights.airlines , flights.flights , flights.routes
+	where flights.airlines.name = 'Olympic Airways'
+	and flights.airlines.id = flights.routes.airlines_id
+	and flights.routes.id = flights.flights.routes_id
+	and flights.flights.date = '2014-12-12'
+	and flights.routes.destination_id in
+ 	(
+		select flights.airports.id from flights.airports
+		where flights.airports.name = 'London Gatwick'
+	)
+	and flights.routes.source_id in
+ 	(
+ 		select flights.airports.id from flights.airports
+ 		where flights.airports.name = 'Athens El. Venizelos'
+	)
+)
+----------------------------------------------------
+Ερώτηση 5:
+
+select avg(2015-flights.passengers.year_of_birth) as age
+from flights.passengers
+where flights.passengers.id in 
+(
+	select flights.passengers.id
+    from flights.flights , flights.routes , flights.airports , flights.passengers , flights.flights_has_passengers
+    where flights.flights_has_passengers.passengers_id = flights.passengers.id
+    and flights.flights_has_passengers.flights_id = flights.flights.id
+    and flights.flights.routes_id = flights.routes.id
+    and flights.routes.destination_id = flights.airports.id
+    and flights.airports.city = 'Athens'
+)
+----------------------------------------------------
+Ερώτηση 6:
+
+select distinct p.name , p.surname
+from flights.passengers p , flights.flights f ,
+	 flights.flights_has_passengers as fhp
+where f.airplanes_id = all
+(
+	select f1.airplanes_id 
+    from flights.flights f1 , flights.flights_has_passengers fhp1
+    where p.id = fhp1.passengers_id
+	and fhp1.flights_id = f1.id
+)
+and fhp.passengers_id = p.id
+and fhp.flights_id = f.id
+----------------------------------------------------
+Ερώτηση 7:
+
+select distinct apo1.city as 'from' , apo2.city as 'to'
+from flights.flights_has_passengers fhp , flights.flights ,
+	 flights.routes , flights.airports apo1 , flights.airports apo2
+where fhp.flights_id in 
+(
+	select flights.flights_has_passengers.flights_id
+    from 	flights.flights_has_passengers
+    group by flights.flights_has_passengers.flights_id
+    having count(flights.flights_has_passengers.passengers_id) > 5 
+)
+and flights.flights.id = fhp.flights_id 
+and flights.flights.routes_id = flights.routes.id
+and flights.routes.source_id = apo1.id
+and flights.routes.destination_id = apo2.id
+----------------------------------------------------
+Ερώτηση 8:
+
+select distinct flights.airlines.name , flights.airlines.code ,
+	count( flights.routes.id) as num
+from flights.airlines , flights.routes
+where flights.airlines.id in
+(
+	select flights.airlines_has_airplanes.airlines_id
+	from flights.airlines_has_airplanes 
+	group by flights.airlines_has_airplanes.airlines_id
+	having (count(flights.airlines_has_airplanes.airplanes_id) = 5)
+)
+and flights.routes.airlines_id = flights.airlines.id
+group by flights.airlines.id
+----------------------------------------------------
+Ερώτηση 10:
+
+(
+	select distinct p.name , p.surname
+	from flights.airlines , flights.passengers as p ,
+		 flights.flights_has_passengers as fhp, flights.routes as r ,
+		 flights.flights as f
+	where flights.airlines.name = 'British Airways'
+	and fhp.passengers_id = p.id
+	and fhp.flights_id = f.id
+	and f.routes_id = r.id
+	and r.airlines_id = flights.airlines.id
+)
+union
+(
+	select distinct p.name , p.surname
+	from flights.passengers as p , flights.flights_has_passengers as fhp ,
+		 flights.flights as f
+	where p.id = fhp.passengers_id
+	and fhp.flights_id = f.id
+	and f.date between '2010-01-01' and '2013-12-31'
+	group by fhp.passengers_id
+	having  count(fhp.flights_id) > 1 
+
+)
